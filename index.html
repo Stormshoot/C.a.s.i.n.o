@@ -4,36 +4,120 @@
 <meta charset="UTF-8">
 <title>Points Game</title>
 <style>
-  body {
-    background: black;
-    color: #00FF00;
-    font-family: monospace;
-    font-size: 18px;
-    padding: 20px;
-  }
-  input, button, select {
-    background: black;
-    color: #00FF00;
-    border: 1px solid #00FF00;
-    font-family: monospace;
-    margin: 5px;
-    font-size: 18px;
-  }
-  #output {
-    white-space: pre-line;
-    margin-top: 20px;
-    max-height: 400px;
-    overflow-y: auto;
-    font-size: 20px;
-  }
-  #gameDiv, #shopDiv {
-    display:none;
-  }
-  #devPanel {
-    display:none;
-    position:fixed;
-    bottom:30px;
-    right:5px;
+body {background:black;color:#00FF00;font-family:monospace;font-size:18px;padding:20px;}
+input, button, select {background:black;color:#00FF00;border:1px solid #00FF00;font-family:monospace;margin:5px;font-size:18px;}
+#output {white-space:pre-line;margin-top:20px;max-height:400px;overflow-y:auto;font-size:20px;}
+#gameDiv,#shopDiv {display:none;}
+#devPanel {display:none;position:fixed;bottom:30px;right:5px;background:black;border:1px solid #00FF00;padding:10px;}
+#devBtn {position:fixed;bottom:5px;right:5px;font-size:10px;}
+</style>
+</head>
+<body>
+
+<h1>POINTS GAME</h1>
+
+<div id="loginDiv">
+  Enter Username: <input type="text" id="usernameInput" />
+  <button onclick="login()">Login</button>
+  <button onclick="wipeSave()">Wipe Save</button>
+</div>
+
+<div id="gameDiv">
+  <div>Points: <span id="points">0</span> | Rank: <span id="rank">F</span></div>
+  <button onclick="wheelSpin()">Wheel Spin</button>
+  <button onclick="doubleOrNothing()">Double or Nothing</button>
+  <button onclick="slotMachine()">Slot Machine</button>
+  <button onclick="openShop()">Open Rank Shop</button>
+  <div>
+    Coin Flip: Bet <input type="range" id="betSlider" min="1" max="100" value="10"> <span id="betAmount">10</span> points
+    <button onclick="coinFlip()">Flip Coin</button>
+  </div>
+  <div id="output"></div>
+</div>
+
+<div id="shopDiv">
+  <h2>Rank Shop</h2>
+  <div id="shopContent"></div>
+  <button onclick="closeShop()">Back</button>
+</div>
+
+<button id="devBtn" onclick="showDevPrompt()">DEV</button>
+<div id="devPanel">
+  <label><input type="checkbox" id="alwaysWin"> Always Win</label><br>
+  Set Cash: <input type="number" id="setCashInput" min="0">
+  <button onclick="setCash()">Apply</button>
+</div>
+
+<script>
+let user='', points=0, userRank='F', lastHourlyBonus=Date.now(), devEnabled=false, hourlyBonusInterval=null;
+const ranks=["F","D","C","B","A","S"];
+const rankCosts=[1000,10000,100000,1000000,100000000,10000000000];
+const betSlider=document.getElementById('betSlider');
+const betAmount=document.getElementById('betAmount');
+betSlider.oninput=function(){betAmount.innerText=this.value;}
+
+window.addEventListener('DOMContentLoaded',hardReset);
+
+function hardReset(){
+  if(hourlyBonusInterval) clearInterval(hourlyBonusInterval);
+  hourlyBonusInterval=null;
+  user=''; points=0; userRank='F'; lastHourlyBonus=Date.now(); devEnabled=false;
+  document.getElementById('gameDiv').style.display='none';
+  document.getElementById('shopDiv').style.display='none';
+  document.getElementById('devPanel').style.display='none';
+  document.getElementById('loginDiv').style.display='block';
+  document.getElementById('output').innerText='';
+  document.getElementById('shopContent').innerHTML='';
+  betSlider.value=10; betSlider.max=100; betAmount.innerText=betSlider.value;
+}
+
+function login(){
+  user=document.getElementById('usernameInput').value.trim();
+  if(!user) return alert("Enter a username.");
+  document.getElementById('output').innerText='';
+  let saved=JSON.parse(localStorage.getItem('user_'+user));
+  const now=Date.now();
+  if(saved && now-saved.lastActive<7*24*60*60*1000){
+    points=saved.points; userRank=saved.rank||'F';
+  } else { points=500; userRank='F'; }
+  updateCFSlider();
+  document.getElementById('points').innerText=points;
+  document.getElementById('rank').innerText=userRank;
+  document.getElementById('loginDiv').style.display='none';
+  document.getElementById('gameDiv').style.display='block';
+  output(`User ${user} logged in. Points: ${points}. Rank: ${userRank}`);
+  save(); startHourlyBonus();
+}
+
+function save(){if(!user) return; localStorage.setItem('user_'+user,JSON.stringify({points,lastActive:Date.now(),rank:userRank})); document.getElementById('points').innerText=points; document.getElementById('rank').innerText=userRank; updateCFSlider();}
+
+function updateCFSlider(){if(!user) return; betSlider.max=points>0?points:1; if(betSlider.value>points) betSlider.value=points; betAmount.innerText=betSlider.value;}
+
+function output(msg){let d=document.getElementById('output'); d.innerText+=msg+'\n'; d.scrollTop=d.scrollHeight;}
+function outputFrame(msg){let d=document.getElementById('output'); let l=d.innerText.split('\n'); l[l.length-1]=msg; d.innerText=l.join('\n'); d.scrollTop=d.scrollHeight;}
+
+function showDevPrompt(){let code=prompt("Enter dev code:"); if(code==="2633"){devEnabled=true; document.getElementById('devPanel').style.display='block'; output("Dev panel enabled.");} else alert("Incorrect code.");}
+function setCash(){if(!user) return; const val=parseInt(document.getElementById('setCashInput').value); if(!isNaN(val)){points=val; save(); output(`Points set to ${points} via dev panel.`);}}
+function isWinForced(){return devEnabled && document.getElementById('alwaysWin').checked;}
+
+function wheelSpin(){if(!user) return output("Please login first."); if(points<=0) return output("Wheel spin failed. 0 points."); const symbols=['$','!']; const spinLength=15; let current=0, steps=0; const finalSymbol=isWinForced()?'$':symbols[Math.floor(Math.random()*symbols.length)]; outputFrame(""); const interval=setInterval(()=>{outputFrame("Wheel: ["+symbols[current]+"]"); current=(current+1)%symbols.length; steps++; if(steps>spinLength && symbols[current]===finalSymbol){clearInterval(interval); let prize=finalSymbol==='$'?Math.floor(points*0.10):-Math.floor(points*0.10); points+=prize; output(`Wheel stopped at [${finalSymbol}]. ${prize>=0?'You gained':'You lost'} ${Math.abs(prize)} points.`); save();}},120);}
+
+function doubleOrNothing(){if(!user) return output("Please login first."); if(points<=0) return output("Double or Nothing failed. 0 points."); if(Math.random()<0.6){let lost=points; points=0; output(`Double or Nothing lost. ${lost} points lost.`);} else {points*=2; output(`Double or Nothing won. Points doubled.`);} save();}
+
+function slotMachine(){if(!user) return output("Please login first."); if(points<=0) return output("Slot machine failed. 0 points."); const symbols=['$','!','$','!','$','!','$','$','!','$']; const reelCount=5; let finalSymbols=[]; for(let i=0;i<reelCount;i++){finalSymbols.push(isWinForced()?'$':symbols[Math.floor(Math.random()*symbols.length)]);} outputFrame(""); let steps=0, maxSteps=10; const interval=setInterval(()=>{let display=[]; for(let i=0;i<reelCount;i++){display.push(symbols[Math.floor(Math.random()*symbols.length)]);} outputFrame("Slot: "+display.join(' ')); steps++; if(steps>=maxSteps){clearInterval(interval); let prize=0; finalSymbols.forEach(s=>{if(s==='$') prize+=Math.floor(points*0.05); if(s==='!') prize-=Math.floor(points*0.05);}); points+=prize; output("Slot stopped: "+finalSymbols.join(' ') + `. ${prize>=0?'You gained':'You lost'} ${Math.abs(prize)} points.`); save();}},150);}
+
+function coinFlip(){if(!user) return output("Please login first."); if(points<=0) return output("Coin flip failed. 0 points."); let bet=parseInt(betSlider.value); if(bet>points) bet=points; let win=isWinForced()||Math.random()>=0.55; if(win){points+=bet; output(`CF won. ${bet} points gained.`);} else {points-=bet; output(`CF lost. ${bet} points lost.`);} save();}
+
+function openShop(){if(!user) return output("Please login first."); document.getElementById('gameDiv').style.display='none'; document.getElementById('shopDiv').style.display='block'; updateShop();}
+function closeShop(){document.getElementById('shopDiv').style.display='none'; document.getElementById('gameDiv').style.display='block';}
+function updateShop(){if(!user) return; const shopDiv=document.getElementById('shopContent'); shopDiv.innerHTML=""; let idx=ranks.indexOf(userRank); if(idx>=ranks.length-1){shopDiv.innerHTML="You already have the highest rank ("+userRank+")."; return;} let nextRank=ranks[idx+1], cost=rankCosts[idx]; let btn=document.createElement('button'); btn.innerText=`Purchase rank ${nextRank} for ${cost} points`; btn.onclick=()=>{if(points>=cost){points-=cost; userRank=nextRank; output(`Purchased rank ${userRank}. ${cost} points spent.`); save(); updateShop();} else output(`Insufficient points for next rank (${nextRank}). Need ${cost} points.`);}; shopDiv.appendChild(btn);}
+
+function startHourlyBonus(){if(!user) return; lastHourlyBonus=Date.now(); if(hourlyBonusInterval) clearInterval(hourlyBonusInterval); hourlyBonusInterval=setInterval(()=>{const now=Date.now(); if(now-lastHourlyBonus>=60*60*1000){points+=500; lastHourlyBonus=now; output("Hourly bonus: +500 points."); save();}},60*1000);}
+
+function wipeSave(){if(confirm("Are you sure you want to wipe all saved data?")){localStorage.clear(); location.reload();}}
+</script>
+</body>
+</html>
     background:black;
     border:1px solid #00FF00;
     padding:10px;
