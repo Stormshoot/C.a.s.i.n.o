@@ -14,26 +14,193 @@ input, button, select {background:black;color:#00FF00;border:1px solid #00FF00;f
 <body>
 
 <script>
-let points=0, userRank='F', hourlyBonusInterval=null, devEnabled=false;
+let user='', points=0, userRank='F', lastHourlyBonus=Date.now(), devEnabled=false, hourlyBonusInterval=null;
 const ranks=["F","D","C","B","A","S"];
 const rankCosts=[1000,10000,100000,1000000,100000000,10000000000];
+
 let betSlider, betAmount, outputDiv, gameDiv, shopDiv, devPanel;
 
-window.addEventListener('DOMContentLoaded', ()=>{
-    buildUI();
+window.addEventListener('DOMContentLoaded', () => {
+    // Only build UI if it doesn't exist
+    if(!document.getElementById('loginDiv')) buildUI();
     loadFromStorage();
     startHourlyBonus();
 });
 
 function buildUI(){
+    // Title
     const title = document.createElement('h1');
-    title.innerText="POINTS GAME";
+    title.innerText = "POINTS GAME";
     document.body.appendChild(title);
 
-    // Game Div
-    gameDiv=document.createElement('div'); gameDiv.id='gameDiv';
+    // Login
+    const loginDiv = document.createElement('div');
+    loginDiv.id='loginDiv';
+    loginDiv.innerHTML=`
+        Enter Username: <input type="text" id="usernameInput" />
+        <button id="loginBtn">Login</button>
+        <button id="wipeBtn">Wipe Save</button>
+    `;
+    document.body.appendChild(loginDiv);
+    document.getElementById('loginBtn').onclick=login;
+    document.getElementById('wipeBtn').onclick=wipeSave;
+
+    // Game
+    gameDiv = document.createElement('div');
+    gameDiv.id='gameDiv';
+    gameDiv.style.display='none';
     gameDiv.innerHTML=`
         <div>Points: <span id="pointsDisplay">0</span> | Rank: <span id="rankDisplay">F</span></div>
+        <button id="wheelBtn">Wheel Spin</button>
+        <button id="doubleBtn">Double or Nothing</button>
+        <button id="slotBtn">Slot Machine</button>
+        <button id="shopBtn">Open Rank Shop</button>
+        <div>Coin Flip: Bet <input type="range" id="betSlider" min="1" max="100" value="10"> <span id="betAmount">10</span> points
+        <button id="coinBtn">Flip Coin</button></div>
+        <div id="output"></div>
+    `;
+    document.body.appendChild(gameDiv);
+
+    betSlider = gameDiv.querySelector('#betSlider');
+    betAmount = gameDiv.querySelector('#betAmount');
+    outputDiv = gameDiv.querySelector('#output');
+    betSlider.oninput = ()=>betAmount.innerText = betSlider.value;
+
+    gameDiv.querySelector('#wheelBtn').onclick=wheelSpin;
+    gameDiv.querySelector('#doubleBtn').onclick=doubleOrNothing;
+    gameDiv.querySelector('#slotBtn').onclick=slotMachine;
+    gameDiv.querySelector('#coinBtn').onclick=coinFlip;
+    gameDiv.querySelector('#shopBtn').onclick=openShop;
+
+    // Shop
+    shopDiv = document.createElement('div');
+    shopDiv.id='shopDiv';
+    shopDiv.style.display='none';
+    shopDiv.innerHTML=`
+        <h2>Rank Shop</h2>
+        <div id="shopContent"></div>
+        <button id="shopBackBtn">Back</button>
+    `;
+    document.body.appendChild(shopDiv);
+    shopDiv.querySelector('#shopBackBtn').onclick=closeShop;
+
+    // Dev Panel
+    devPanel = document.createElement('div');
+    devPanel.id='devPanel';
+    devPanel.innerHTML=`
+        <label><input type="checkbox" id="alwaysWin"> Always Win</label><br>
+        Set Cash: <input type="number" id="setCashInput" min="0">
+        <button id="setCashBtn">Apply</button>
+    `;
+    document.body.appendChild(devPanel);
+    devPanel.querySelector('#setCashBtn').onclick=setCash;
+
+    // Dev button
+    const devBtn = document.createElement('button');
+    devBtn.id='devBtn';
+    devBtn.innerText='DEV';
+    devBtn.onclick=showDevPrompt;
+    document.body.appendChild(devBtn);
+}
+
+// --- Storage ---
+function loadFromStorage(){
+    points = parseInt(localStorage.getItem('points'))||500;
+    userRank = localStorage.getItem('rank')||'F';
+    updateDisplay();
+}
+
+function saveToStorage(){
+    localStorage.setItem('points', points);
+    localStorage.setItem('rank', userRank);
+    updateDisplay();
+}
+
+function updateDisplay(){
+    if(!gameDiv) return;
+    gameDiv.querySelector('#pointsDisplay').innerText=points;
+    gameDiv.querySelector('#rankDisplay').innerText=userRank;
+    betSlider.max = points>0?points:1;
+    if(betSlider.value>points) betSlider.value=points;
+    betAmount.innerText=betSlider.value;
+}
+
+// --- Dev ---
+function showDevPrompt(){
+    let code = prompt("Enter dev code:");
+    if(code==="2633"){devEnabled=true; devPanel.style.display='block'; appendOutput("Dev panel enabled.");}
+    else alert("Incorrect code.");
+}
+function setCash(){
+    let val = parseInt(devPanel.querySelector('#setCashInput').value);
+    if(!isNaN(val)){points=val; saveToStorage(); appendOutput(`Points set to ${points} via dev panel.`);}
+}
+function isWinForced(){return devEnabled && devPanel.querySelector('#alwaysWin').checked;}
+
+// --- Output ---
+function appendOutput(msg){outputDiv.innerText+=msg+'\n'; outputDiv.scrollTop=outputDiv.scrollHeight;}
+function overwriteOutput(msg){let lines=outputDiv.innerText.split('\n'); lines[lines.length-1]=msg; outputDiv.innerText=lines.join('\n'); outputDiv.scrollTop=outputDiv.scrollHeight;}
+
+// --- Game ---
+function login(){
+    document.getElementById('loginDiv').style.display='none';
+    gameDiv.style.display='block';
+    appendOutput("Logged in. Points: "+points+". Rank: "+userRank);
+}
+
+function wheelSpin(){
+    if(points<=0) return appendOutput("Wheel spin failed. 0 points.");
+    const symbols=['$','!'], final = isWinForced()?'$':symbols[Math.floor(Math.random()*symbols.length)];
+    let steps=0, spinLen=15, idx=0;
+    const interval = setInterval(()=>{
+        overwriteOutput("Wheel: ["+symbols[idx]+"]");
+        idx=(idx+1)%symbols.length;
+        steps++;
+        if(steps>spinLen && symbols[idx]===final){
+            clearInterval(interval);
+            let prize = final==='$'?Math.floor(points*0.10):-Math.floor(points*0.10);
+            points+=prize; appendOutput(`Wheel stopped at [${final}]. ${prize>=0?'You gained':'You lost'} ${Math.abs(prize)} points.`);
+            saveToStorage();
+        }
+    },120);
+}
+
+function doubleOrNothing(){if(points<=0) return appendOutput("Double or Nothing failed."); if(Math.random()<0.6){let lost=points; points=0; appendOutput(`Double or Nothing lost. ${lost} points lost.`);} else {points*=2; appendOutput("Double or Nothing won. Points doubled.");} saveToStorage();}
+function slotMachine(){if(points<=0) return appendOutput("Slot failed."); const symbols=['$','!','$','!','$','!','$','$','!','$']; const reels=5; let final=[]; for(let i=0;i<reels;i++) final.push(isWinForced()?'$':symbols[Math.floor(Math.random()*symbols.length)]); let steps=0,maxSteps=10; const interval=setInterval(()=>{let display=[]; for(let i=0;i<reels;i++) display.push(symbols[Math.floor(Math.random()*symbols.length)]); overwriteOutput("Slot: "+display.join(' ')); steps++; if(steps>=maxSteps){clearInterval(interval); let prize=0; final.forEach(s=>{if(s==='$') prize+=Math.floor(points*0.05); if(s==='!') prize-=Math.floor(points*0.05);}); points+=prize; appendOutput("Slot stopped: "+final.join(' ') + `. ${prize>=0?'You gained':'You lost'} ${Math.abs(prize)} points.`); saveToStorage();}},150);}
+function coinFlip(){if(points<=0) return appendOutput("CF failed."); let bet=parseInt(betSlider.value); if(bet>points) bet=points; let win=isWinForced()||Math.random()>=0.55; if(win){points+=bet; appendOutput(`CF won. ${bet} points gained.`);} else {points-=bet; appendOutput(`CF lost. ${bet} points lost.`);} saveToStorage();}
+
+// --- Shop ---
+function openShop(){gameDiv.style.display='none'; shopDiv.style.display='block'; updateShop();}
+function closeShop(){shopDiv.style.display='none'; gameDiv.style.display='block';}
+function updateShop(){
+    const shopContent=shopDiv.querySelector('#shopContent');
+    shopContent.innerHTML='';
+    let idx=ranks.indexOf(userRank);
+    if(idx>=ranks.length-1){shopContent.innerText="Highest rank reached."; return;}
+    let nextRank=ranks[idx+1], cost=rankCosts[idx];
+    let btn=document.createElement('button');
+    btn.innerText=`Purchase rank ${nextRank} for ${cost} points`;
+    btn.onclick=()=>{
+        if(points>=cost){points-=cost; userRank=nextRank; appendOutput(`Purchased rank ${userRank}. ${cost} spent.`); saveToStorage(); updateShop();}
+        else appendOutput(`Not enough points for ${nextRank}. Need ${cost}.`);
+    };
+    shopContent.appendChild(btn);
+}
+
+// --- Hourly Bonus ---
+function startHourlyBonus(){
+    if(hourlyBonusInterval) clearInterval(hourlyBonusInterval);
+    hourlyBonusInterval=setInterval(()=>{
+        points+=500; appendOutput("Hourly bonus: +500 points."); saveToStorage();
+    },60*60*1000);
+}
+
+// --- Wipe ---
+function wipeSave(){if(confirm("Wipe all saved data?")){localStorage.clear(); location.reload();}}
+</script>
+
+</body>
+</html>
         <button id="wheelBtn">Wheel Spin</button>
         <button id="doubleBtn">Double or Nothing</button>
         <button id="slotBtn">Slot Machine</button>
