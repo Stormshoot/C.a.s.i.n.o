@@ -6,28 +6,44 @@ let betX3Enabled = localStorage.getItem('betX3Enabled') === "true";
 let ppsLevel = parseInt(localStorage.getItem('ppsLevel')) || 0;
 let ppsCost = parseInt(localStorage.getItem('ppsCost')) || 1000;
 
+// --- Ranks ---
+const ranks = ['F','D','C','B','A','S'];
+const rankCosts = [1000,10000,100000,1000000,100000000,10000000000];
+
 // --- DOM Setup ---
 const container = document.getElementById('container');
-container.innerHTML = ''; // Clear old content inside container
+container.innerHTML='';
 
-// Output / terminal
+// Main game area
+const gameArea = document.createElement('div');
+gameArea.id='gameArea';
+container.appendChild(gameArea);
+
+// Shop area
+const shopArea = document.createElement('div');
+shopArea.id='shopArea';
+shopArea.style.display='none';
+container.appendChild(shopArea);
+
+// Output
 const outputDiv = document.createElement('pre');
-outputDiv.id = 'output';
-outputDiv.style.height = '200px';
-outputDiv.style.overflowY = 'scroll';
-outputDiv.style.border = '1px solid #0F0';
-outputDiv.style.padding = '10px';
-outputDiv.style.backgroundColor = 'black';
-outputDiv.style.color = '#0F0';
-container.appendChild(outputDiv);
+outputDiv.id='output';
+outputDiv.style.height='200px';
+outputDiv.style.overflowY='scroll';
+outputDiv.style.border='1px solid #0F0';
+outputDiv.style.padding='10px';
+outputDiv.style.backgroundColor='black';
+outputDiv.style.color='#0F0';
+gameArea.appendChild(outputDiv);
+
 function appendOutput(msg){ outputDiv.innerText += msg+'\n'; outputDiv.scrollTop=outputDiv.scrollHeight; }
 function overwriteOutput(msg){ let lines = outputDiv.innerText.split('\n'); lines[lines.length-1]=msg; outputDiv.innerText = lines.join('\n'); outputDiv.scrollTop=outputDiv.scrollHeight; }
 
-// Display
+// Points and rank display
 const pointsDisplay = document.createElement('div');
 const rankDisplay = document.createElement('div');
-container.appendChild(pointsDisplay);
-container.appendChild(rankDisplay);
+gameArea.appendChild(pointsDisplay);
+gameArea.appendChild(rankDisplay);
 
 function updateDisplay(){
     pointsDisplay.innerText = `Points: ${points}`;
@@ -41,27 +57,31 @@ function saveToStorage(){
     saveUpgrades();
     updateDisplay();
 }
-function saveUpgrades() {
+function saveUpgrades(){
     localStorage.setItem('betX3', betX3);
     localStorage.setItem('betX3Enabled', betX3Enabled);
     localStorage.setItem('ppsLevel', ppsLevel);
     localStorage.setItem('ppsCost', ppsCost);
 }
 
-// --- Shop ---
-const shopDiv = document.createElement('div');
-shopDiv.id='shopDiv';
-shopDiv.style.display='none';
-container.appendChild(shopDiv);
-shopDiv.innerHTML = `<h2>Shop</h2><div id="shopContent"></div><button id="shopBackBtn">Back</button>`;
-shopDiv.querySelector('#shopBackBtn').onclick = () => { shopDiv.style.display='none'; container.style.display='block'; updateDisplay(); }
+// --- Buttons ---
+const buttonsDiv = document.createElement('div');
+gameArea.appendChild(buttonsDiv);
 
-const ranks = ['F','D','C','B','A','S'];
-const rankCosts = [1000,10000,100000,1000000,100000000,10000000000];
+const wheelBtn = document.createElement('button'); wheelBtn.innerText='Wheel Spin'; buttonsDiv.appendChild(wheelBtn);
+const doubleBtn = document.createElement('button'); doubleBtn.innerText='Double or Nothing'; buttonsDiv.appendChild(doubleBtn);
+const slotBtn = document.createElement('button'); slotBtn.innerText='Slot Machine'; buttonsDiv.appendChild(slotBtn);
+const coinBtn = document.createElement('button'); coinBtn.innerText='Coin Flip'; buttonsDiv.appendChild(coinBtn);
+const shopBtn = document.createElement('button'); shopBtn.innerText='Open Rank Shop'; buttonsDiv.appendChild(shopBtn);
+
+// --- Shop ---
+shopArea.innerHTML = `<h2>Shop</h2><div id="shopContent"></div><button id="shopBackBtn">Back</button>`;
+const shopBackBtn = shopArea.querySelector('#shopBackBtn');
+shopBackBtn.onclick = () => { shopArea.style.display='none'; gameArea.style.display='block'; updateDisplay(); }
 
 function updateShop(){
-    const shopContent = shopDiv.querySelector('#shopContent');
-    shopContent.innerHTML = '';
+    const shopContent = shopArea.querySelector('#shopContent');
+    shopContent.innerHTML='';
 
     // Rank
     let idx = ranks.indexOf(userRank);
@@ -102,16 +122,8 @@ function updateShop(){
     shopContent.appendChild(btnPPS); shopContent.appendChild(document.createElement("br"));
 }
 
-// --- Buttons ---
-const buttonsDiv = document.createElement('div');
-container.appendChild(buttonsDiv);
-
-const wheelBtn = document.createElement('button'); wheelBtn.innerText='Wheel Spin'; buttonsDiv.appendChild(wheelBtn);
-const doubleBtn = document.createElement('button'); doubleBtn.innerText='Double or Nothing'; buttonsDiv.appendChild(doubleBtn);
-const slotBtn = document.createElement('button'); slotBtn.innerText='Slot Machine'; buttonsDiv.appendChild(slotBtn);
-const coinBtn = document.createElement('button'); coinBtn.innerText='Coin Flip'; buttonsDiv.appendChild(coinBtn);
-const shopBtn = document.createElement('button'); shopBtn.innerText='Open Rank Shop'; buttonsDiv.appendChild(shopBtn);
-shopBtn.onclick=()=>{ container.style.display='none'; shopDiv.style.display='block'; updateShop(); }
+// Shop button
+shopBtn.onclick = () => { gameArea.style.display='none'; shopArea.style.display='block'; updateShop(); }
 
 // --- Bet x3 wrapper ---
 function runWithBetX3(fn){ if(betX3===2 && betX3Enabled){ for(let i=0;i<3;i++) fn(); } else fn(); }
