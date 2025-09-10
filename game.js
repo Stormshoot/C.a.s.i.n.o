@@ -231,4 +231,4 @@ container.appendChild(wipeBtn);
 
 // --- Initial Display ---
 updateDisplay();
-appendOutput("Welcome to C.A.S.I.N.O! Terminal below interface.");
+appendOutput("Welcome to Casino!");
