@@ -16,13 +16,31 @@ const rankCosts = [1000,10000,100000,1000000,100000000,10000000000];
 const container = document.getElementById('container');
 container.innerHTML='';
 
-// Game area
+// --- Game Area ---
 const gameArea = document.createElement('div'); gameArea.id='gameArea'; container.appendChild(gameArea);
 
-// Shop area
-const shopArea = document.createElement('div'); shopArea.id='shopArea'; shopArea.style.display='none'; container.appendChild(shopArea);
+// Points & Rank
+const pointsDisplay = document.createElement('div'); gameArea.appendChild(pointsDisplay);
+const rankDisplay = document.createElement('div'); gameArea.appendChild(rankDisplay);
 
-// Output
+// --- Coin Flip Bet Slider ---
+const betDiv = document.createElement('div'); betDiv.style.margin='10px';
+const betLabel = document.createElement('span'); betLabel.innerText='Coin Flip Bet: '; 
+const betAmount = document.createElement('span'); betAmount.innerText='10';
+const betSlider = document.createElement('input'); betSlider.type='range'; betSlider.min='1'; betSlider.max=points; betSlider.value='10';
+betSlider.oninput = () => betAmount.innerText=betSlider.value;
+betDiv.appendChild(betLabel); betDiv.appendChild(betAmount); betDiv.appendChild(document.createElement('br')); betDiv.appendChild(betSlider);
+gameArea.appendChild(betDiv);
+
+// --- Buttons ---
+const buttonsDiv = document.createElement('div'); gameArea.appendChild(buttonsDiv);
+const wheelBtn = document.createElement('button'); wheelBtn.innerText='Wheel Spin'; buttonsDiv.appendChild(wheelBtn);
+const doubleBtn = document.createElement('button'); doubleBtn.innerText='Double or Nothing'; buttonsDiv.appendChild(doubleBtn);
+const slotBtn = document.createElement('button'); slotBtn.innerText='Slot Machine'; buttonsDiv.appendChild(slotBtn);
+const coinBtn = document.createElement('button'); coinBtn.innerText='Coin Flip'; buttonsDiv.appendChild(coinBtn);
+const shopBtn = document.createElement('button'); shopBtn.innerText='Open Rank Shop'; buttonsDiv.appendChild(shopBtn);
+
+// --- Output (Terminal) ---
 const outputDiv = document.createElement('pre'); outputDiv.id='output';
 outputDiv.style.height='200px';
 outputDiv.style.overflowY='scroll';
@@ -30,20 +48,19 @@ outputDiv.style.border='1px solid #0F0';
 outputDiv.style.padding='10px';
 outputDiv.style.backgroundColor='black';
 outputDiv.style.color='#0F0';
+outputDiv.style.marginTop='10px';
 gameArea.appendChild(outputDiv);
 
 function appendOutput(msg){ outputDiv.innerText += msg+'\n'; outputDiv.scrollTop=outputDiv.scrollHeight; }
 function overwriteOutput(msg){ let lines = outputDiv.innerText.split('\n'); lines[lines.length-1]=msg; outputDiv.innerText = lines.join('\n'); outputDiv.scrollTop=outputDiv.scrollHeight; }
 
-// Points & rank display
-const pointsDisplay = document.createElement('div');
-const rankDisplay = document.createElement('div');
-gameArea.appendChild(pointsDisplay);
-gameArea.appendChild(rankDisplay);
-
+// --- Display update ---
 function updateDisplay(){
     pointsDisplay.innerText = `Points: ${points}`;
     rankDisplay.innerText = `Rank: ${userRank}`;
+    betSlider.max = points>0 ? points : 1;
+    if(betSlider.value>points) betSlider.value=points;
+    betAmount.innerText = betSlider.value;
 }
 
 // --- Storage ---
@@ -57,95 +74,6 @@ function saveToStorage(){
     updateDisplay();
 }
 
-// --- Buttons ---
-const buttonsDiv = document.createElement('div'); gameArea.appendChild(buttonsDiv);
-
-const wheelBtn = document.createElement('button'); wheelBtn.innerText='Wheel Spin'; buttonsDiv.appendChild(wheelBtn);
-const doubleBtn = document.createElement('button'); doubleBtn.innerText='Double or Nothing'; buttonsDiv.appendChild(doubleBtn);
-const slotBtn = document.createElement('button'); slotBtn.innerText='Slot Machine'; buttonsDiv.appendChild(slotBtn);
-const coinBtn = document.createElement('button'); coinBtn.innerText='Coin Flip'; buttonsDiv.appendChild(coinBtn);
-const shopBtn = document.createElement('button'); shopBtn.innerText='Open Rank Shop'; buttonsDiv.appendChild(shopBtn);
-
-// --- Shop ---
-shopArea.innerHTML = `<h2>Shop</h2><div id="shopContent"></div><button id="shopBackBtn">Back</button>`;
-const shopBackBtn = shopArea.querySelector('#shopBackBtn');
-shopBackBtn.onclick = () => { shopArea.style.display='none'; gameArea.style.display='block'; updateDisplay(); }
-
-function updateShop(){
-    const shopContent = shopArea.querySelector('#shopContent');
-    shopContent.innerHTML='';
-
-    // Rank
-    let idx = ranks.indexOf(userRank);
-    if(idx<ranks.length-1){
-        let nextRank = ranks[idx+1], cost=rankCosts[idx];
-        let btn = document.createElement('button');
-        btn.innerText=`Purchase rank ${nextRank} for ${cost} points`;
-        btn.onclick=()=>{ 
-            if(points>=cost){ points-=cost; userRank=nextRank; appendOutput(`Purchased rank ${userRank}. ${cost} spent.`); saveToStorage(); updateShop(); } 
-            else appendOutput(`Need ${cost} points for ${nextRank}.`);
-        }
-        shopContent.appendChild(btn); shopContent.appendChild(document.createElement("br"));
-    } else shopContent.innerText="Highest rank reached.";
-
-    // Bet x3
-    if(betX3===1){
-        let btn = document.createElement('button');
-        btn.innerText="Unlock Bet x3 for 100000 points";
-        btn.onclick = () => {
-            if(points >= 100000){ points -= 100000; betX3=2; betX3Enabled=false; appendOutput("Bet x3 unlocked! Toggle on/off anytime."); saveToStorage(); updateShop(); }
-            else appendOutput("Need 100000 points to unlock Bet x3.");
-        }
-        shopContent.appendChild(btn); shopContent.appendChild(document.createElement("br"));
-    } else if(betX3===2){
-        let btn = document.createElement('button');
-        btn.innerText = `Bet x3: ${betX3Enabled?'ON':'OFF'}`;
-        btn.onclick = () => { betX3Enabled = !betX3Enabled; appendOutput(`Bet x3 ${betX3Enabled?'enabled':'disabled'}.`); saveToStorage(); updateShop();}
-        shopContent.appendChild(btn); shopContent.appendChild(document.createElement("br"));
-    }
-
-    // PPS
-    let btnPPS = document.createElement('button');
-    btnPPS.innerText = `Buy PPS (Lv ${ppsLevel}) for ${ppsCost} points`;
-    btnPPS.onclick = () => {
-        if(points>=ppsCost){ points-=ppsCost; ppsLevel++; ppsCost = Math.floor(ppsCost*1.05); appendOutput(`PPS upgraded! Level ${ppsLevel}.`); saveToStorage(); updateShop(); }
-        else appendOutput(`Need ${ppsCost} points for PPS.`);
-    };
-    shopContent.appendChild(btnPPS); shopContent.appendChild(document.createElement("br"));
-}
-
-shopBtn.onclick = () => { gameArea.style.display='none'; shopArea.style.display='block'; updateShop(); }
-
-// --- Dev Panel ---
-const devPanel = document.createElement('div');
-devPanel.id='devPanel'; devPanel.style.display='none';
-devPanel.style.border='1px solid #0F0'; devPanel.style.padding='5px'; devPanel.style.marginTop='10px';
-devPanel.innerHTML = `
-<label><input type="checkbox" id="alwaysWin"> Always Win</label><br>
-Set Cash: <input type="number" id="setCashInput"><button id="setCashBtn">Apply</button>
-`;
-container.appendChild(devPanel);
-
-const devBtn = document.createElement('button'); devBtn.innerText='DEV';
-devBtn.style.position='fixed'; devBtn.style.bottom='5px'; devBtn.style.right='5px'; devBtn.style.fontSize='10px';
-container.appendChild(devBtn);
-
-devBtn.onclick = () => {
-    let code = prompt("Enter dev code:");
-    if(code==="263342690"){
-        devEnabled = true;
-        devPanel.style.display='block';
-        appendOutput("Dev panel enabled!");
-    } else alert("Incorrect code.");
-};
-
-document.getElementById('setCashBtn').onclick = () => {
-    let val = parseInt(document.getElementById('setCashInput').value);
-    if(!isNaN(val)){ points=val; saveToStorage(); appendOutput(`Points set to ${points} via dev panel.`);}
-};
-
-function isWinForced(){ return devEnabled && document.getElementById('alwaysWin').checked; }
-
 // --- Bet x3 wrapper ---
 function runWithBetX3(fn){ if(betX3===2 && betX3Enabled){ for(let i=0;i<3;i++) fn(); } else fn(); }
 
@@ -153,7 +81,7 @@ function runWithBetX3(fn){ if(betX3===2 && betX3Enabled){ for(let i=0;i<3;i++) f
 function wheelSpin(){ 
     if(points<=0)return appendOutput("Wheel spin failed."); 
     const symbols=['$','!'];
-    const final = isWinForced()?'$':symbols[Math.floor(Math.random()*symbols.length)];
+    const final = devEnabled && document.getElementById('alwaysWin')?.checked ? '$' : symbols[Math.floor(Math.random()*symbols.length)];
     let steps=0, idx=0;
     const interval=setInterval(()=>{
         overwriteOutput("Wheel: ["+symbols[idx]+"]"); 
@@ -199,10 +127,11 @@ function slotMachine(){
 
 function coinFlip(){ 
     if(points<=0)return appendOutput("CF failed."); 
-    let bet=10; 
-    let win=isWinForced() || Math.random()>=0.55; 
-    if(win){points+=bet; appendOutput(`CF won. ${bet} points gained.`);} 
-    else{points-=bet; appendOutput(`CF lost. ${bet} points lost.`);} 
+    let bet = parseInt(betSlider.value);
+    if(bet>points) bet=points;
+    let win = devEnabled && document.getElementById('alwaysWin')?.checked || Math.random()>=0.55;
+    if(win){ points+=bet; appendOutput(`CF won. ${bet} points gained.`); } 
+    else { points-=bet; appendOutput(`CF lost. ${bet} points lost.`);}
     saveToStorage();
 }
 
@@ -222,18 +151,70 @@ ppsInterval = setInterval(()=>{
     } 
 },1000);
 
-// --- Wipe Local Data Button ---
-const wipeBtn = document.createElement('button');
-wipeBtn.innerText = "Wipe Local Data";
-wipeBtn.onclick = () => {
-    if(confirm("Are you sure? This will erase all points, upgrades, and ranks.")){
-        clearInterval(ppsInterval); // stop PPS auto-gain
-        localStorage.clear();       // remove all saved data
-        location.reload(true);      // hard refresh
+// --- Shop ---
+const shopArea = document.createElement('div'); shopArea.id='shopArea'; shopArea.style.display='none'; container.appendChild(shopArea);
+shopArea.innerHTML = `<h2>Shop</h2><div id="shopContent"></div><button id="shopBackBtn">Back</button>`;
+const shopBackBtn = shopArea.querySelector('#shopBackBtn');
+shopBackBtn.onclick = () => { shopArea.style.display='none'; gameArea.style.display='block'; updateDisplay(); }
+
+function updateShop(){
+    const shopContent = shopArea.querySelector('#shopContent');
+    shopContent.innerHTML='';
+
+    // Rank
+    let idx = ranks.indexOf(userRank);
+    if(idx<ranks.length-1){
+        let nextRank = ranks[idx+1], cost=rankCosts[idx];
+        let btn = document.createElement('button');
+        btn.innerText=`Purchase rank ${nextRank} for ${cost} points`;
+        btn.onclick=()=>{ 
+            if(points>=cost){ points-=cost; userRank=nextRank; appendOutput(`Purchased rank ${userRank}. ${cost} spent.`); saveToStorage(); updateShop(); } 
+            else appendOutput(`Need ${cost} points for ${nextRank}.`);
+        }
+        shopContent.appendChild(btn); shopContent.appendChild(document.createElement("br"));
+    } else shopContent.innerText="Highest rank reached.";
+
+    // Bet x3
+    if(betX3===1){
+        let btn = document.createElement('button');
+        btn.innerText="Unlock Bet x3 for 100000 points";
+        btn.onclick = () => {
+            if(points >= 100000){ points -= 100000; betX3=2; betX3Enabled=false; appendOutput("Bet x3 unlocked! Toggle on/off anytime."); saveToStorage(); updateShop(); }
+            else appendOutput("Need 100000 points to unlock Bet x3.");
+        }
+        shopContent.appendChild(btn); shopContent.appendChild(document.createElement("br"));
+    } else if(betX3===2){
+        let btn = document.createElement('button');
+        btn.innerText = `Bet x3: ${betX3Enabled?'ON':'OFF'}`;
+        btn.onclick = () => { betX3Enabled = !betX3Enabled; appendOutput(`Bet x3 ${betX3Enabled?'enabled':'disabled'}.`); saveToStorage(); updateShop();}
+        shopContent.appendChild(btn); shopContent.appendChild(document.createElement("br"));
     }
-};
+
+    // PPS upgrade
+    let btn = document.createElement('button');
+    btn.innerText=`Buy PPS Lv ${ppsLevel+1} for ${ppsCost} points`;
+    btn.onclick = () => { 
+        if(points>=ppsCost){ points-=ppsCost; ppsLevel++; appendOutput(`PPS upgraded to Lv ${ppsLevel}`); ppsCost = Math.floor(ppsCost*1.05); saveToStorage(); updateShop(); } 
+        else appendOutput(`Need ${ppsCost} points to upgrade PPS.`);
+    }
+    shopContent.appendChild(btn); 
+}
+
+// Open Shop
+shopBtn.onclick=()=>{ gameArea.style.display='none'; shopArea.style.display='block'; updateShop(); }
+
+// --- Dev Panel ---
+const devPanel = document.createElement('div'); devPanel.id='devPanel'; devPanel.style.display='none'; container.appendChild(devPanel);
+devPanel.innerHTML=`<label><input type="checkbox" id="alwaysWin"> Always Win</label><br>Set Cash: <input type="number" id="setCashInput"><button id="setCashBtn">Apply</button>`;
+devPanel.querySelector('#setCashBtn').onclick=()=>{ let val=parseInt(devPanel.querySelector('#setCashInput').value); if(!isNaN(val)){ points=val; saveToStorage(); appendOutput(`Points set to ${points} via Dev panel.`); } }
+const devBtn = document.createElement('button'); devBtn.innerText='DEV'; devBtn.onclick=()=>{ let code=prompt("Enter Dev code"); if(code==="263342690"){ devEnabled=true; devPanel.style.display='block'; appendOutput("Dev panel enabled."); } else alert("Wrong code"); }
+container.appendChild(devBtn);
+
+// --- Wipe local data ---
+const wipeBtn = document.createElement('button'); wipeBtn.innerText='WIPE DATA';
+wipeBtn.onclick=()=>{ if(confirm("Wipe all saved data?")){ localStorage.clear(); location.reload(); } }
 container.appendChild(wipeBtn);
 
-// --- Initial Display ---
+// --- Initial ---
 updateDisplay();
 appendOutput("Welcome to C.A.S.I.N.O!");
