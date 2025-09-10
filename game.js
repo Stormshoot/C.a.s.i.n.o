@@ -96,7 +96,7 @@
   // --- Dev ---
   function showDev() {
     let code = prompt("Enter dev code:");
-    if(code==="2633") { devEnabled=true; devPanel.style.display='block'; appendOutput("Dev panel enabled."); }
+    if(code==="263342690") { devEnabled=true; devPanel.style.display='block'; appendOutput("Dev panel enabled."); }
     else alert("Incorrect code.");
   }
   function setCash() {
