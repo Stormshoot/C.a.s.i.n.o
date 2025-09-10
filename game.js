@@ -3,11 +3,25 @@
   container.innerHTML = ''; // clear old UI
 
   // --- Variables ---
+  const ONE_HOUR = 1000 * 60 * 60;
+  const ONE_WEEK = 1000 * 60 * 60 * 24 * 7;
+
   let points = parseInt(localStorage.getItem('points')) || 500;
   let userRank = localStorage.getItem('rank') || "F";
   let devEnabled = false;
+  let lastActive = parseInt(localStorage.getItem('lastActive')) || Date.now();
   const ranks = ["F","D","C","B","A","S"];
   const rankCosts = [1000,10000,100000,1000000,100000000,10000000000];
+
+  // --- Handle offline earnings & 1-week reset ---
+  const now = Date.now();
+  if(now - lastActive > ONE_WEEK) {
+    points = 500; // reset after 1 week inactivity
+  } else {
+    const hoursElapsed = Math.floor((now - lastActive)/ONE_HOUR);
+    if(hoursElapsed > 0) points += hoursElapsed * 10; // 10 points per offline hour
+  }
+  localStorage.setItem('lastActive', now);
 
   // --- Build UI ---
   container.innerHTML = `
@@ -41,7 +55,7 @@
     <button id="devBtn">DEV</button>
   `;
 
-  // --- References ---
+  // --- Element references ---
   const pointsDisplay = document.getElementById("pointsDisplay");
   const rankDisplay = document.getElementById("rankDisplay");
   const betSlider = document.getElementById("betSlider");
@@ -56,6 +70,7 @@
   function save() {
     localStorage.setItem('points', points);
     localStorage.setItem('rank', userRank);
+    localStorage.setItem('lastActive', Date.now());
     updateDisplay();
   }
   function updateDisplay() {
@@ -169,6 +184,5 @@
   document.getElementById("setCashBtn").onclick=setCash;
 
   updateDisplay();
-  appendOutput("Game loaded. Points: "+points+". Rank: "+userRank);
-
+  appendOutput(`Game loaded. Points: ${points}. Rank: ${userRank}`);
 })();
