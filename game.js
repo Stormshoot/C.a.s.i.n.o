@@ -142,14 +142,18 @@ slotBtn.onclick=()=>runWithBetX3(slotMachine);
 coinBtn.onclick=()=>runWithBetX3(coinFlip);
 
 // --- PPS auto-gain ---
-ppsInterval = setInterval(()=>{ 
-    if(ppsLevel>0){ 
-        let gain=Math.floor(points*(ppsLevel*0.02)); 
-        points+=gain; 
-        appendOutput(`PPS +${gain} points (Lv ${ppsLevel}).`); 
-        saveToStorage(); 
-    } 
-},1000);
+function startPPS(){
+    if(ppsInterval) clearInterval(ppsInterval);
+    ppsInterval = setInterval(()=>{
+        if(ppsLevel>0){
+            let gain = 1 + Math.floor(ppsLevel * 1.2);
+            points += gain;
+            appendOutput(`PPS +${gain} points (Lv ${ppsLevel}).`);
+            saveToStorage();
+        }
+    }, 1000);
+}
+startPPS();
 
 // --- Shop ---
 const shopArea = document.createElement('div'); shopArea.id='shopArea'; shopArea.style.display='none'; container.appendChild(shopArea);
@@ -191,13 +195,13 @@ function updateShop(){
     }
 
     // PPS upgrade
-    let btn = document.createElement('button');
-    btn.innerText=`Buy PPS Lv ${ppsLevel+1} for ${ppsCost} points`;
-    btn.onclick = () => { 
+    let ppsBtn = document.createElement('button');
+    ppsBtn.innerText=`Buy PPS Lv ${ppsLevel+1} for ${ppsCost} points`;
+    ppsBtn.onclick = () => { 
         if(points>=ppsCost){ points-=ppsCost; ppsLevel++; appendOutput(`PPS upgraded to Lv ${ppsLevel}`); ppsCost = Math.floor(ppsCost*1.05); saveToStorage(); updateShop(); } 
         else appendOutput(`Need ${ppsCost} points to upgrade PPS.`);
     }
-    shopContent.appendChild(btn); 
+    shopContent.appendChild(ppsBtn); 
 }
 
 // Open Shop
@@ -212,9 +216,19 @@ container.appendChild(devBtn);
 
 // --- Wipe local data ---
 const wipeBtn = document.createElement('button'); wipeBtn.innerText='WIPE DATA';
-wipeBtn.onclick=()=>{ if(confirm("Wipe all saved data?")){ localStorage.clear(); location.reload(); } }
+wipeBtn.onclick = () => {
+    if(confirm("Wipe all saved data?")){
+        localStorage.clear();
+        points = 500; userRank='F'; betX3=1; betX3Enabled=false; ppsLevel=0; ppsCost=1000; devEnabled=false;
+        startPPS();
+        updateDisplay();
+        appendOutput("All data wiped. Starting fresh!");
+    }
+};
+
+// Append Wipe button
 container.appendChild(wipeBtn);
 
-// --- Initial ---
+// --- Initial Display ---
 updateDisplay();
-appendOutput("Welcome to C.A.S.I.N.O!");
+appendOutput("Welcome to C.A.S.I.N.O! Terminal below interface.");
