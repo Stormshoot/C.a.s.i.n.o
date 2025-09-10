@@ -141,14 +141,13 @@ doubleBtn.onclick=()=>runWithBetX3(doubleOrNothing);
 slotBtn.onclick=()=>runWithBetX3(slotMachine);
 coinBtn.onclick=()=>runWithBetX3(coinFlip);
 
-// --- PPS auto-gain ---
+// --- PPS auto-gain (silent) ---
 function startPPS(){
     if(ppsInterval) clearInterval(ppsInterval);
     ppsInterval = setInterval(()=>{
         if(ppsLevel>0){
-            let gain = 1 + Math.floor(ppsLevel * 3);
+            let gain = 1 + Math.floor(ppsLevel * 1.2);
             points += gain;
-            appendOutput(`PPS +${gain} points (Lv ${ppsLevel}).`);
             saveToStorage();
         }
     }, 1000);
@@ -198,8 +197,14 @@ function updateShop(){
     let ppsBtn = document.createElement('button');
     ppsBtn.innerText=`Buy PPS Lv ${ppsLevel+1} for ${ppsCost} points`;
     ppsBtn.onclick = () => { 
-        if(points>=ppsCost){ points-=ppsCost; ppsLevel++; appendOutput(`PPS upgraded to Lv ${ppsLevel}`); ppsCost = Math.floor(ppsCost*1.25); saveToStorage(); updateShop(); } 
-        else appendOutput(`Need ${ppsCost} points to upgrade PPS.`);
+        if(points>=ppsCost){ 
+            points-=ppsCost; 
+            ppsLevel++; 
+            appendOutput(`PPS upgraded to Lv ${ppsLevel}`); 
+            ppsCost = Math.floor(ppsCost*1.05); 
+            saveToStorage(); 
+            updateShop(); 
+        } else appendOutput(`Need ${ppsCost} points to upgrade PPS.`);
     }
     shopContent.appendChild(ppsBtn); 
 }
@@ -225,8 +230,6 @@ wipeBtn.onclick = () => {
         appendOutput("All data wiped. Starting fresh!");
     }
 };
-
-// Append Wipe button
 container.appendChild(wipeBtn);
 
 // --- Initial Display ---
