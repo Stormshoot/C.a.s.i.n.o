@@ -106,7 +106,7 @@ function doubleOrNothing(){
 
 function slotMachine(){ 
     if(points<=0)return appendOutput("Slot failed."); 
-    const symbols=['$','!','$','!','$','!','$','$','!','$']; 
+    const symbols=['$','!','$','!','$','!','$','!','!','$']; 
     const reels=5; 
     let final=[]; 
     for(let i=0;i<reels;i++) final.push(symbols[Math.floor(Math.random()*symbols.length)]); 
