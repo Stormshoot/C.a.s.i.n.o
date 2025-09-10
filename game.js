@@ -5,6 +5,7 @@ let betX3 = parseInt(localStorage.getItem('betX3')) || 1; // 1=locked, 2=purchas
 let betX3Enabled = localStorage.getItem('betX3Enabled') === "true";
 let ppsLevel = parseInt(localStorage.getItem('ppsLevel')) || 0;
 let ppsCost = parseInt(localStorage.getItem('ppsCost')) || 1000;
+let devEnabled = false;
 
 // --- Ranks ---
 const ranks = ['F','D','C','B','A','S'];
@@ -14,20 +15,14 @@ const rankCosts = [1000,10000,100000,1000000,100000000,10000000000];
 const container = document.getElementById('container');
 container.innerHTML='';
 
-// Main game area
-const gameArea = document.createElement('div');
-gameArea.id='gameArea';
-container.appendChild(gameArea);
+// Game area
+const gameArea = document.createElement('div'); gameArea.id='gameArea'; container.appendChild(gameArea);
 
 // Shop area
-const shopArea = document.createElement('div');
-shopArea.id='shopArea';
-shopArea.style.display='none';
-container.appendChild(shopArea);
+const shopArea = document.createElement('div'); shopArea.id='shopArea'; shopArea.style.display='none'; container.appendChild(shopArea);
 
 // Output
-const outputDiv = document.createElement('pre');
-outputDiv.id='output';
+const outputDiv = document.createElement('pre'); outputDiv.id='output';
 outputDiv.style.height='200px';
 outputDiv.style.overflowY='scroll';
 outputDiv.style.border='1px solid #0F0';
@@ -39,7 +34,7 @@ gameArea.appendChild(outputDiv);
 function appendOutput(msg){ outputDiv.innerText += msg+'\n'; outputDiv.scrollTop=outputDiv.scrollHeight; }
 function overwriteOutput(msg){ let lines = outputDiv.innerText.split('\n'); lines[lines.length-1]=msg; outputDiv.innerText = lines.join('\n'); outputDiv.scrollTop=outputDiv.scrollHeight; }
 
-// Points and rank display
+// Points & rank display
 const pointsDisplay = document.createElement('div');
 const rankDisplay = document.createElement('div');
 gameArea.appendChild(pointsDisplay);
@@ -54,19 +49,15 @@ function updateDisplay(){
 function saveToStorage(){
     localStorage.setItem('points', points);
     localStorage.setItem('rank', userRank);
-    saveUpgrades();
-    updateDisplay();
-}
-function saveUpgrades(){
     localStorage.setItem('betX3', betX3);
     localStorage.setItem('betX3Enabled', betX3Enabled);
     localStorage.setItem('ppsLevel', ppsLevel);
     localStorage.setItem('ppsCost', ppsCost);
+    updateDisplay();
 }
 
 // --- Buttons ---
-const buttonsDiv = document.createElement('div');
-gameArea.appendChild(buttonsDiv);
+const buttonsDiv = document.createElement('div'); gameArea.appendChild(buttonsDiv);
 
 const wheelBtn = document.createElement('button'); wheelBtn.innerText='Wheel Spin'; buttonsDiv.appendChild(wheelBtn);
 const doubleBtn = document.createElement('button'); doubleBtn.innerText='Double or Nothing'; buttonsDiv.appendChild(doubleBtn);
@@ -101,14 +92,14 @@ function updateShop(){
         let btn = document.createElement('button');
         btn.innerText="Unlock Bet x3 for 100000 points";
         btn.onclick = () => {
-            if(points >= 100000){ points -= 100000; betX3=2; betX3Enabled=false; appendOutput("Bet x3 unlocked! Toggle on/off anytime."); saveUpgrades(); saveToStorage(); updateShop(); }
+            if(points >= 100000){ points -= 100000; betX3=2; betX3Enabled=false; appendOutput("Bet x3 unlocked! Toggle on/off anytime."); saveToStorage(); updateShop(); }
             else appendOutput("Need 100000 points to unlock Bet x3.");
         }
         shopContent.appendChild(btn); shopContent.appendChild(document.createElement("br"));
     } else if(betX3===2){
         let btn = document.createElement('button');
         btn.innerText = `Bet x3: ${betX3Enabled?'ON':'OFF'}`;
-        btn.onclick = () => { betX3Enabled = !betX3Enabled; appendOutput(`Bet x3 ${betX3Enabled?'enabled':'disabled'}.`); saveUpgrades(); updateShop();}
+        btn.onclick = () => { betX3Enabled = !betX3Enabled; appendOutput(`Bet x3 ${betX3Enabled?'enabled':'disabled'}.`); saveToStorage(); updateShop();}
         shopContent.appendChild(btn); shopContent.appendChild(document.createElement("br"));
     }
 
@@ -116,14 +107,43 @@ function updateShop(){
     let btnPPS = document.createElement('button');
     btnPPS.innerText = `Buy PPS (Lv ${ppsLevel}) for ${ppsCost} points`;
     btnPPS.onclick = () => {
-        if(points>=ppsCost){ points-=ppsCost; ppsLevel++; ppsCost = Math.floor(ppsCost*1.05); appendOutput(`PPS upgraded! Level ${ppsLevel}.`); saveUpgrades(); saveToStorage(); updateShop(); }
+        if(points>=ppsCost){ points-=ppsCost; ppsLevel++; ppsCost = Math.floor(ppsCost*1.05); appendOutput(`PPS upgraded! Level ${ppsLevel}.`); saveToStorage(); updateShop(); }
         else appendOutput(`Need ${ppsCost} points for PPS.`);
     };
     shopContent.appendChild(btnPPS); shopContent.appendChild(document.createElement("br"));
 }
 
-// Shop button
 shopBtn.onclick = () => { gameArea.style.display='none'; shopArea.style.display='block'; updateShop(); }
+
+// --- Dev Panel ---
+const devPanel = document.createElement('div');
+devPanel.id='devPanel'; devPanel.style.display='none';
+devPanel.style.border='1px solid #0F0'; devPanel.style.padding='5px'; devPanel.style.marginTop='10px';
+devPanel.innerHTML = `
+<label><input type="checkbox" id="alwaysWin"> Always Win</label><br>
+Set Cash: <input type="number" id="setCashInput"><button id="setCashBtn">Apply</button>
+`;
+container.appendChild(devPanel);
+
+const devBtn = document.createElement('button'); devBtn.innerText='DEV';
+devBtn.style.position='fixed'; devBtn.style.bottom='5px'; devBtn.style.right='5px'; devBtn.style.fontSize='10px';
+container.appendChild(devBtn);
+
+devBtn.onclick = () => {
+    let code = prompt("Enter dev code:");
+    if(code==="263342690"){
+        devEnabled = true;
+        devPanel.style.display='block';
+        appendOutput("Dev panel enabled!");
+    } else alert("Incorrect code.");
+};
+
+document.getElementById('setCashBtn').onclick = () => {
+    let val = parseInt(document.getElementById('setCashInput').value);
+    if(!isNaN(val)){ points=val; saveToStorage(); appendOutput(`Points set to ${points} via dev panel.`);}
+};
+
+function isWinForced(){ return devEnabled && document.getElementById('alwaysWin').checked; }
 
 // --- Bet x3 wrapper ---
 function runWithBetX3(fn){ if(betX3===2 && betX3Enabled){ for(let i=0;i<3;i++) fn(); } else fn(); }
@@ -131,7 +151,8 @@ function runWithBetX3(fn){ if(betX3===2 && betX3Enabled){ for(let i=0;i<3;i++) f
 // --- Game Functions ---
 function wheelSpin(){ 
     if(points<=0)return appendOutput("Wheel spin failed."); 
-    const symbols=['$','!'], final=symbols[Math.floor(Math.random()*symbols.length)];
+    const symbols=['$','!'];
+    const final = isWinForced()?'$':symbols[Math.floor(Math.random()*symbols.length)];
     let steps=0, idx=0;
     const interval=setInterval(()=>{
         overwriteOutput("Wheel: ["+symbols[idx]+"]"); 
@@ -146,12 +167,14 @@ function wheelSpin(){
         }
     },120);
 }
+
 function doubleOrNothing(){ 
     if(points<=0) return appendOutput("Double failed."); 
     if(Math.random()<0.6){ let lost=points; points=0; appendOutput(`Double lost. ${lost} points lost.`);} 
     else{points*=2; appendOutput("Double won. Points doubled.");} 
     saveToStorage();
 }
+
 function slotMachine(){ 
     if(points<=0)return appendOutput("Slot failed."); 
     const symbols=['$','!','$','!','$','!','$','$','!','$']; 
@@ -172,16 +195,17 @@ function slotMachine(){
         }
     },150);
 }
+
 function coinFlip(){ 
     if(points<=0)return appendOutput("CF failed."); 
     let bet=10; 
-    let win=Math.random()>=0.55; 
+    let win=isWinForced() || Math.random()>=0.55; 
     if(win){points+=bet; appendOutput(`CF won. ${bet} points gained.`);} 
     else{points-=bet; appendOutput(`CF lost. ${bet} points lost.`);} 
     saveToStorage();
 }
 
-// --- Attach buttons ---
+// Attach buttons
 wheelBtn.onclick=()=>runWithBetX3(wheelSpin);
 doubleBtn.onclick=()=>runWithBetX3(doubleOrNothing);
 slotBtn.onclick=()=>runWithBetX3(slotMachine);
