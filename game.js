@@ -6,6 +6,7 @@ let betX3Enabled = localStorage.getItem('betX3Enabled') === "true";
 let ppsLevel = parseInt(localStorage.getItem('ppsLevel')) || 0;
 let ppsCost = parseInt(localStorage.getItem('ppsCost')) || 1000;
 let devEnabled = false;
+let ppsInterval;
 
 // --- Ranks ---
 const ranks = ['F','D','C','B','A','S'];
@@ -212,7 +213,7 @@ slotBtn.onclick=()=>runWithBetX3(slotMachine);
 coinBtn.onclick=()=>runWithBetX3(coinFlip);
 
 // --- PPS auto-gain ---
-setInterval(()=>{ 
+ppsInterval = setInterval(()=>{ 
     if(ppsLevel>0){ 
         let gain=Math.floor(points*(ppsLevel*0.02)); 
         points+=gain; 
@@ -226,8 +227,9 @@ const wipeBtn = document.createElement('button');
 wipeBtn.innerText = "Wipe Local Data";
 wipeBtn.onclick = () => {
     if(confirm("Are you sure? This will erase all points, upgrades, and ranks.")){
-        localStorage.clear();
-        location.reload(true);
+        clearInterval(ppsInterval); // stop PPS auto-gain
+        localStorage.clear();       // remove all saved data
+        location.reload(true);      // hard refresh
     }
 };
 container.appendChild(wipeBtn);
