@@ -1,4 +1,4 @@
-// --- Global Variables ---
+// --- Globals ---
 let points = parseInt(localStorage.getItem('points')) || 500;
 let userRank = localStorage.getItem('rank') || 'F';
 let betX3 = parseInt(localStorage.getItem('betX3')) || 1; // 1=locked, 2=purchased
@@ -6,12 +6,11 @@ let betX3Enabled = localStorage.getItem('betX3Enabled') === "true";
 let ppsLevel = parseInt(localStorage.getItem('ppsLevel')) || 0;
 let ppsCost = parseInt(localStorage.getItem('ppsCost')) || 1000;
 
-let devEnabled = false;
-
 // --- DOM Setup ---
 const container = document.getElementById('container');
+container.innerHTML = ''; // Clear old content inside container
 
-// Terminal
+// Output / terminal
 const outputDiv = document.createElement('pre');
 outputDiv.id = 'output';
 outputDiv.style.height = '200px';
@@ -19,9 +18,8 @@ outputDiv.style.overflowY = 'scroll';
 outputDiv.style.border = '1px solid #0F0';
 outputDiv.style.padding = '10px';
 outputDiv.style.backgroundColor = 'black';
-outputDiv.style.color = 'lime';
+outputDiv.style.color = '#0F0';
 container.appendChild(outputDiv);
-
 function appendOutput(msg){ outputDiv.innerText += msg+'\n'; outputDiv.scrollTop=outputDiv.scrollHeight; }
 function overwriteOutput(msg){ let lines = outputDiv.innerText.split('\n'); lines[lines.length-1]=msg; outputDiv.innerText = lines.join('\n'); outputDiv.scrollTop=outputDiv.scrollHeight; }
 
@@ -40,10 +38,9 @@ function updateDisplay(){
 function saveToStorage(){
     localStorage.setItem('points', points);
     localStorage.setItem('rank', userRank);
-    updateDisplay();
     saveUpgrades();
+    updateDisplay();
 }
-
 function saveUpgrades() {
     localStorage.setItem('betX3', betX3);
     localStorage.setItem('betX3Enabled', betX3Enabled);
@@ -66,7 +63,7 @@ function updateShop(){
     const shopContent = shopDiv.querySelector('#shopContent');
     shopContent.innerHTML = '';
 
-    // Rank Shop
+    // Rank
     let idx = ranks.indexOf(userRank);
     if(idx<ranks.length-1){
         let nextRank = ranks[idx+1], cost=rankCosts[idx];
@@ -84,28 +81,28 @@ function updateShop(){
         let btn = document.createElement('button');
         btn.innerText="Unlock Bet x3 for 100000 points";
         btn.onclick = () => {
-            if(points>=100000){ points-=100000; betX3=2; betX3Enabled=false; appendOutput("Bet x3 unlocked! Toggle it on/off anytime."); saveUpgrades(); saveToStorage(); updateShop(); }
+            if(points >= 100000){ points -= 100000; betX3=2; betX3Enabled=false; appendOutput("Bet x3 unlocked! Toggle on/off anytime."); saveUpgrades(); saveToStorage(); updateShop(); }
             else appendOutput("Need 100000 points to unlock Bet x3.");
         }
         shopContent.appendChild(btn); shopContent.appendChild(document.createElement("br"));
     } else if(betX3===2){
         let btn = document.createElement('button');
         btn.innerText = `Bet x3: ${betX3Enabled?'ON':'OFF'}`;
-        btn.onclick=()=>{ betX3Enabled=!betX3Enabled; appendOutput(`Bet x3 ${betX3Enabled?'enabled':'disabled'}.`); saveUpgrades(); updateShop();}
+        btn.onclick = () => { betX3Enabled = !betX3Enabled; appendOutput(`Bet x3 ${betX3Enabled?'enabled':'disabled'}.`); saveUpgrades(); updateShop();}
         shopContent.appendChild(btn); shopContent.appendChild(document.createElement("br"));
     }
 
     // PPS
-    let btn = document.createElement('button');
-    btn.innerText = `Buy PPS (Lv ${ppsLevel}) for ${ppsCost} points`;
-    btn.onclick=()=>{ 
-        if(points>=ppsCost){ points-=ppsCost; ppsLevel++; ppsCost=Math.floor(ppsCost*1.05); appendOutput(`PPS upgraded! Level ${ppsLevel}.`); saveUpgrades(); saveToStorage(); updateShop();}
-        else appendOutput(`Need ${ppsCost} points for PPS.`); 
-    }
-    shopContent.appendChild(btn); shopContent.appendChild(document.createElement("br"));
+    let btnPPS = document.createElement('button');
+    btnPPS.innerText = `Buy PPS (Lv ${ppsLevel}) for ${ppsCost} points`;
+    btnPPS.onclick = () => {
+        if(points>=ppsCost){ points-=ppsCost; ppsLevel++; ppsCost = Math.floor(ppsCost*1.05); appendOutput(`PPS upgraded! Level ${ppsLevel}.`); saveUpgrades(); saveToStorage(); updateShop(); }
+        else appendOutput(`Need ${ppsCost} points for PPS.`);
+    };
+    shopContent.appendChild(btnPPS); shopContent.appendChild(document.createElement("br"));
 }
 
-// --- Gamble Buttons ---
+// --- Buttons ---
 const buttonsDiv = document.createElement('div');
 container.appendChild(buttonsDiv);
 
@@ -116,11 +113,10 @@ const coinBtn = document.createElement('button'); coinBtn.innerText='Coin Flip';
 const shopBtn = document.createElement('button'); shopBtn.innerText='Open Rank Shop'; buttonsDiv.appendChild(shopBtn);
 shopBtn.onclick=()=>{ container.style.display='none'; shopDiv.style.display='block'; updateShop(); }
 
-// --- Gamble Wrappers ---
+// --- Bet x3 wrapper ---
 function runWithBetX3(fn){ if(betX3===2 && betX3Enabled){ for(let i=0;i<3;i++) fn(); } else fn(); }
 
-// --- Game Logic ---
-// Wheel: $ +10%, ! -10%
+// --- Game Functions ---
 function wheelSpin(){ 
     if(points<=0)return appendOutput("Wheel spin failed."); 
     const symbols=['$','!'], final=symbols[Math.floor(Math.random()*symbols.length)];
@@ -138,16 +134,12 @@ function wheelSpin(){
         }
     },120);
 }
-
-// Double or Nothing
 function doubleOrNothing(){ 
     if(points<=0) return appendOutput("Double failed."); 
     if(Math.random()<0.6){ let lost=points; points=0; appendOutput(`Double lost. ${lost} points lost.`);} 
     else{points*=2; appendOutput("Double won. Points doubled.");} 
     saveToStorage();
 }
-
-// Slot: $ +5%, ! -5%
 function slotMachine(){ 
     if(points<=0)return appendOutput("Slot failed."); 
     const symbols=['$','!','$','!','$','!','$','$','!','$']; 
@@ -168,8 +160,6 @@ function slotMachine(){
         }
     },150);
 }
-
-// Coin Flip
 function coinFlip(){ 
     if(points<=0)return appendOutput("CF failed."); 
     let bet=10; 
@@ -185,10 +175,16 @@ doubleBtn.onclick=()=>runWithBetX3(doubleOrNothing);
 slotBtn.onclick=()=>runWithBetX3(slotMachine);
 coinBtn.onclick=()=>runWithBetX3(coinFlip);
 
-// --- PPS Interval ---
-setInterval(()=>{ if(ppsLevel>0){ let gain=Math.floor(points*(ppsLevel*0.02)); points+=gain; appendOutput(`PPS +${gain} points (Lv ${ppsLevel}).`); saveToStorage(); } },1000);
+// --- PPS auto-gain ---
+setInterval(()=>{ 
+    if(ppsLevel>0){ 
+        let gain=Math.floor(points*(ppsLevel*0.02)); 
+        points+=gain; 
+        appendOutput(`PPS +${gain} points (Lv ${ppsLevel}).`); 
+        saveToStorage(); 
+    } 
+},1000);
 
 // --- Initial Display ---
 updateDisplay();
 appendOutput("Welcome to C.A.S.I.N.O!");
-
