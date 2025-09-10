@@ -9,16 +9,7 @@ let ppsCost = parseInt(localStorage.getItem('ppsCost')) || 1000;
 let devEnabled = false;
 
 // --- DOM Setup ---
-const container = document.createElement('div');
-container.id = 'container';
-container.style.textAlign = 'center';
-container.style.fontFamily = 'monospace';
-document.body.innerHTML = '';
-document.body.appendChild(container);
-
-const title = document.createElement('h1');
-title.innerText = "C.A.S.I.N.O";
-container.appendChild(title);
+const container = document.getElementById('container');
 
 // Terminal
 const outputDiv = document.createElement('pre');
@@ -200,3 +191,4 @@ setInterval(()=>{ if(ppsLevel>0){ let gain=Math.floor(points*(ppsLevel*0.02)); p
 // --- Initial Display ---
 updateDisplay();
 appendOutput("Welcome to C.A.S.I.N.O!");
+
