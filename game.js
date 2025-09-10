@@ -221,6 +221,17 @@ setInterval(()=>{
     } 
 },1000);
 
+// --- Wipe Local Data Button ---
+const wipeBtn = document.createElement('button');
+wipeBtn.innerText = "Wipe Local Data";
+wipeBtn.onclick = () => {
+    if(confirm("Are you sure? This will erase all points, upgrades, and ranks.")){
+        localStorage.clear();
+        location.reload(true);
+    }
+};
+container.appendChild(wipeBtn);
+
 // --- Initial Display ---
 updateDisplay();
 appendOutput("Welcome to C.A.S.I.N.O!");
