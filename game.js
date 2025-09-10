@@ -146,7 +146,7 @@ function startPPS(){
     if(ppsInterval) clearInterval(ppsInterval);
     ppsInterval = setInterval(()=>{
         if(ppsLevel>0){
-            let gain = 1 + Math.floor(ppsLevel * 1.2);
+            let gain = 1 + Math.floor(ppsLevel * 3);
             points += gain;
             appendOutput(`PPS +${gain} points (Lv ${ppsLevel}).`);
             saveToStorage();
