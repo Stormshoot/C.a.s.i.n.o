@@ -198,7 +198,7 @@ function updateShop(){
     let ppsBtn = document.createElement('button');
     ppsBtn.innerText=`Buy PPS Lv ${ppsLevel+1} for ${ppsCost} points`;
     ppsBtn.onclick = () => { 
-        if(points>=ppsCost){ points-=ppsCost; ppsLevel++; appendOutput(`PPS upgraded to Lv ${ppsLevel}`); ppsCost = Math.floor(ppsCost*1.05); saveToStorage(); updateShop(); } 
+        if(points>=ppsCost){ points-=ppsCost; ppsLevel++; appendOutput(`PPS upgraded to Lv ${ppsLevel}`); ppsCost = Math.floor(ppsCost*1.25); saveToStorage(); updateShop(); } 
         else appendOutput(`Need ${ppsCost} points to upgrade PPS.`);
     }
     shopContent.appendChild(ppsBtn); 
